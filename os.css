@@ -47,10 +47,13 @@ body{
     margin-left: 1rem;
 }
 
+#start:hover{
+    opacity: 0.6;
+}
+
 .taskbar-icons img{
     height: 2rem;
     width: 2rem;
-    cursor: pointer;
 }
 
 #time{
