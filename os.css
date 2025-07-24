@@ -2,10 +2,48 @@ body{
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(54deg,rgb(9, 159, 19) 0%, rgb(57, 146, 94) 55%, rgb(73, 153, 141) 100% 100%);
+    background: linear-gradient(54deg,rgb(110, 201, 116) 0%, rgb(158, 233, 128) 55%, rgb(177, 234, 145) 100% 100%);
     min-height: 100vh;
 }
 
+.icons img{
+    width: 4rem;
+    height: 4rem;
+}
+
 .taskbar{
+    box-sizing: border-box;
+    position: absolute;
+    bottom: 0;
+    display: flex;
     background-color: #205201;
+    height: 4rem;
+    width: 100vw;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.taskbar img{
+    height: 4rem;
+    width: 4rem;
+}
+
+.taskbar-icons{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    margin-left: 1rem;
+}
+
+.taskbar-icons img{
+    height: 2rem;
+    width: 2rem;
+}
+
+#time{
+    color: white;
+    font-size: 1.2rem;
+    font-weight: 500;
 }
