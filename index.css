@@ -48,3 +48,17 @@ body{
     font-size: 2rem;
     margin: 10px 0;
 }
+
+#password {
+    width: 20rem;
+    padding: 5px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.2rem;
+    margin-top: 20px;
+}
+
+#hint{
+    margin-top: 1rem;
+    font-size: 1rem;
+}
