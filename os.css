@@ -2,13 +2,23 @@ body{
     margin: 0;
     padding: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(54deg,rgb(110, 201, 116) 0%, rgb(158, 233, 128) 55%, rgb(177, 234, 145) 100% 100%);
+    background: linear-gradient(54deg,rgb(82, 142, 86) 0%, rgb(106, 156, 87) 55%, rgb(104, 149, 78) 100% 100%);
     min-height: 100vh;
 }
 
+.icons{
+    display: flex;
+    padding-left: 1rem;
+    padding-top: 1rem;
+    flex-direction: column;
+    gap: 20px;
+}
+
 .icons img{
-    width: 4rem;
-    height: 4rem;
+    border-radius: 50%;
+    width: 5rem;
+    height: 5rem;
+    cursor: pointer;
 }
 
 .taskbar{
@@ -40,6 +50,7 @@ body{
 .taskbar-icons img{
     height: 2rem;
     width: 2rem;
+    cursor: pointer;
 }
 
 #time{
