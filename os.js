@@ -11,28 +11,53 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(updateTime, 1000);
 
     let currentWindow = null;
+    let openWindows = [];
+    let nextZIndex = 1000;
+    let windowOffset = 0;
 
-    // Function to close current window
     function closeCurrentWindow() {
         if (currentWindow) {
             currentWindow.remove();
+            openWindows = openWindows.filter(w => w !== currentWindow);
             currentWindow = null;
         }
     }
 
-    // Function to create window
-    function createWindow(title, content, width = '500px', height = '400px') {
-        closeCurrentWindow();
+    function closeWindow(windowElement) {
+        if (windowElement) {
+            windowElement.remove();
+            openWindows = openWindows.filter(w => w !== windowElement);
+            if (currentWindow === windowElement) {
+                currentWindow = null;
+            }
+        }
+    }
+
+    function createWindow(title, content, width = '500px', height = '400px', showCloseButton = true, isStartMenu = false) {
+        if (isStartMenu) {
+            closeCurrentWindow();
+        }
+        
+        if (!isStartMenu) {
+            const existingWindow = openWindows.find(w => w.querySelector('.window-title').textContent === title);
+            if (existingWindow) {
+                existingWindow.style.zIndex = nextZIndex++;
+                return existingWindow;
+            }
+        }
         
         const window = document.createElement('div');
         window.className = 'window';
         window.style.width = width;
         window.style.height = height;
+        window.style.zIndex = nextZIndex++;
+        
+        const closeButtonHtml = showCloseButton ? '<button class="window-close">×</button>' : '';
         
         window.innerHTML = `
             <div class="window-header">
                 <span class="window-title">${title}</span>
-                <button class="window-close">×</button>
+                ${closeButtonHtml}
             </div>
             <div class="window-content">
                 ${content}
@@ -40,18 +65,37 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         document.body.appendChild(window);
-        currentWindow = window;
         
-        // Close button functionality
-        window.querySelector('.window-close').addEventListener('click', closeCurrentWindow);
+        openWindows.push(window);
         
-        // Make window draggable
-        makeDraggable(window);
+        if (!isStartMenu) {
+            windowOffset += 30;
+            if (windowOffset > 150) windowOffset = 0; 
+            
+            window.style.top = `calc(50% + ${windowOffset}px)`;
+            window.style.left = `calc(50% + ${windowOffset}px)`;
+        }
+        
+        if (isStartMenu) {
+            currentWindow = window;
+        }
+        
+        const closeBtn = window.querySelector('.window-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => closeWindow(window));
+        }
+        
+        if (showCloseButton) {
+            makeDraggable(window);
+        }
+        
+        window.addEventListener('mousedown', () => {
+            window.style.zIndex = nextZIndex++;
+        });
         
         return window;
     }
 
-    // Function to make windows draggable
     function makeDraggable(windowElement) {
         const header = windowElement.querySelector('.window-header');
         let isDragging = false;
@@ -146,13 +190,16 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '280px');
+        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '280px', false, true);
         
         // Position start menu near start button
         startWindow.style.bottom = '80px';
         startWindow.style.left = '20px';
         startWindow.style.top = 'auto';
         startWindow.style.transform = 'none';
+        
+        // Mark this as start menu for click outside detection
+        startWindow.classList.add('start-menu-window');
         
         // Add click handlers for start menu items
         startWindow.querySelectorAll('.start-menu-item').forEach(item => {
@@ -403,13 +450,16 @@ document.addEventListener('DOMContentLoaded', function() {
         createWindow('📁 Swamp Explorer', filesContent, '500px', '400px');
     });
 
-    // Click outside to close start menu
+    // Click outside to close start menu only
     document.addEventListener('click', function(e) {
-        if (currentWindow && 
-            currentWindow.querySelector('.start-menu') && 
-            !e.target.closest('.window') && 
-            !e.target.closest('#start')) {
-            closeCurrentWindow();
+        // Find start menu window in openWindows
+        const startMenuWindow = openWindows.find(w => w.classList.contains('start-menu-window'));
+        
+        if (startMenuWindow) {
+            // Check if click is outside start menu and not on start button
+            if (!e.target.closest('.start-menu-window') && !e.target.closest('#start')) {
+                closeWindow(startMenuWindow);
+            }
         }
     });
 });
