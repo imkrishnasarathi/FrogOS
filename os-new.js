@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to create window
-    function createWindow(title, content, width = '500px', height = '400px') {
+    function createWindow(title, content, width = '400px', height = '300px') {
         closeCurrentWindow();
         
         const window = document.createElement('div');
@@ -45,86 +45,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Close button functionality
         window.querySelector('.window-close').addEventListener('click', closeCurrentWindow);
         
-        // Make window draggable
-        makeDraggable(window);
-        
         return window;
-    }
-
-    // Function to make windows draggable
-    function makeDraggable(windowElement) {
-        const header = windowElement.querySelector('.window-header');
-        let isDragging = false;
-        let currentX;
-        let currentY;
-        let initialX;
-        let initialY;
-        let xOffset = 0;
-        let yOffset = 0;
-
-        // Get initial position
-        const rect = windowElement.getBoundingClientRect();
-        const initialLeft = rect.left;
-        const initialTop = rect.top;
-
-        header.addEventListener('mousedown', dragStart);
-        document.addEventListener('mousemove', dragMove);
-        document.addEventListener('mouseup', dragEnd);
-
-        function dragStart(e) {
-            if (e.target.classList.contains('window-close')) return;
-            
-            // Get current window position
-            const rect = windowElement.getBoundingClientRect();
-            
-            initialX = e.clientX - rect.left;
-            initialY = e.clientY - rect.top;
-
-            if (e.target === header || e.target.classList.contains('window-title')) {
-                isDragging = true;
-                header.style.cursor = 'grabbing';
-                
-                // Remove centering transform and set absolute positioning
-                windowElement.style.transform = 'none';
-                windowElement.style.position = 'absolute';
-                windowElement.style.left = rect.left + 'px';
-                windowElement.style.top = rect.top + 'px';
-                windowElement.style.margin = '0';
-            }
-        }
-
-        function dragMove(e) {
-            if (isDragging) {
-                e.preventDefault();
-                
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-
-                // Constrain to viewport
-                const maxX = window.innerWidth - windowElement.offsetWidth;
-                const maxY = window.innerHeight - windowElement.offsetHeight;
-                
-                currentX = Math.max(0, Math.min(currentX, maxX));
-                currentY = Math.max(0, Math.min(currentY, maxY));
-
-                windowElement.style.left = currentX + 'px';
-                windowElement.style.top = currentY + 'px';
-            }
-        }
-
-        function dragEnd() {
-            isDragging = false;
-            header.style.cursor = 'grab';
-        }
-
-        header.style.cursor = 'grab';
-        header.style.userSelect = 'none';
     }
 
     // Start Menu functionality
     document.getElementById('start').addEventListener('click', function() {
-        console.log('Start button clicked!'); // Debug log
-        
         const startMenuContent = `
             <div class="start-menu">
                 <div class="start-menu-item" data-app="froggle">
@@ -146,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '280px');
+        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '250px', '200px');
         
         // Position start menu near start button
         startWindow.style.bottom = '80px';
@@ -195,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="search-results" id="froggle-results"></div>
         `;
         
-        const window = createWindow('🌐 Froggle Browser', browserContent, '600px', '500px');
+        const window = createWindow('🌐 Froggle Browser', browserContent, '500px', '400px');
         
         const searchBtn = window.querySelector('.search-button');
         const searchInput = window.querySelector('.search-input');
@@ -256,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        createWindow('🔢 Frog Calculator', calcContent, '400px', '500px');
+        createWindow('🔢 Frog Calculator', calcContent, '300px', '400px');
     }
 
     // Notes
@@ -271,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
 - Enjoy pond life!"></textarea>
         `;
         
-        createWindow('📝 Lily Pad Notes', notesContent, '500px', '450px');
+        createWindow('📝 Lily Pad Notes', notesContent, '400px', '350px');
     }
 
     // About
@@ -290,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        createWindow('🐸 About FrogOS', aboutContent, '450px', '400px');
+        createWindow('🐸 About FrogOS', aboutContent, '350px', '300px');
     }
 
     // Desktop icon functionality
@@ -320,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        const musicWindow = createWindow('🎵 FrogBeats Music', musicContent, '500px', '550px');
+        const musicWindow = createWindow('🎵 FrogBeats Music', musicContent, '400px', '450px');
         
         const playBtn = musicWindow.querySelector('#play-pause');
         let isPlaying = false;
@@ -328,6 +253,15 @@ document.addEventListener('DOMContentLoaded', function() {
         playBtn.addEventListener('click', function() {
             isPlaying = !isPlaying;
             this.textContent = isPlaying ? '⏸' : '▶';
+            
+            if (isPlaying) {
+                // Simple croaking sound simulation
+                setTimeout(() => {
+                    if (isPlaying) {
+                        playBtn.click();
+                    }
+                }, 3000);
+            }
         });
     });
 
@@ -356,7 +290,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        const settingsWindow = createWindow('⚙️ Pond Settings', settingsContent, '500px', '400px');
+        const settingsWindow = createWindow('⚙️ Pond Settings', settingsContent, '400px', '300px');
         
         const wallpaperOptions = settingsWindow.querySelectorAll('.wallpaper-option');
         wallpaperOptions.forEach(option => {
@@ -370,7 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('games').addEventListener('click', function() {
-        createWindow('🎮 Frog Games', '<p style="text-align: center; padding: 20px;">🐸 Games collection coming soon! 🎮<br><br>Future games:<br>• Frogger Classic<br>• Lily Pad Jump<br>• Fly Catcher</p>', '400px', '300px');
+        createWindow('🎮 Frog Games', '<p style="text-align: center; padding: 20px;">🐸 Games collection coming soon! 🎮<br><br>Future games:<br>• Frogger Classic<br>• Lily Pad Jump<br>• Fly Catcher</p>', '300px', '200px');
     });
 
     document.getElementById('files').addEventListener('click', function() {
@@ -400,7 +334,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        createWindow('📁 Swamp Explorer', filesContent, '500px', '400px');
+        createWindow('📁 Swamp Explorer', filesContent, '400px', '300px');
     });
 
     // Click outside to close start menu
