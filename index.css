@@ -6,6 +6,7 @@ body{
     background-repeat: no-repeat;
     background-size: cover;
     min-height: 100vh;
+    transition: opacity 0.5s ease;
 }
 
 .container {
@@ -29,6 +30,54 @@ body{
     font-size: 2rem;
     margin: 20px 0;
     font-weight: 300;
+}
+
+#password {
+    padding: 12px 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 25px;
+    background: rgba(255,255,255,0.1);
+    color: white;
+    font-size: 16px;
+    text-align: center;
+    outline: none;
+    margin-bottom: 10px;
+    backdrop-filter: blur(10px);
+}
+
+#password::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+#password:focus {
+    border-color: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.2);
+}
+
+#login-btn {
+    padding: 12px 30px;
+    background: rgba(46, 125, 50, 0.8);
+    color: white;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 25px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+#login-btn:hover {
+    background: rgba(46, 125, 50, 1);
+    border-color: rgba(255,255,255,0.6);
+    transform: translateY(-2px);
+}
+
+#hint {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    margin: 10px 0;
+    transition: color 0.3s ease;
 }
 
 .os-logo {
