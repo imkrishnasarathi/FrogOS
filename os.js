@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Update time every second
     function updateTime() {
         const now = new Date();
         const hours = now.getHours().toString().padStart(2, '0');
@@ -106,7 +105,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let xOffset = 0;
         let yOffset = 0;
 
-        // Get initial position
         const rect = windowElement.getBoundingClientRect();
         const initialLeft = rect.left;
         const initialTop = rect.top;
@@ -118,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
         function dragStart(e) {
             if (e.target.classList.contains('window-close')) return;
             
-            // Get current window position
             const rect = windowElement.getBoundingClientRect();
             
             initialX = e.clientX - rect.left;
@@ -128,7 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 isDragging = true;
                 header.style.cursor = 'grabbing';
                 
-                // Remove centering transform and set absolute positioning
                 windowElement.style.transform = 'none';
                 windowElement.style.position = 'absolute';
                 windowElement.style.left = rect.left + 'px';
@@ -144,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 currentX = e.clientX - initialX;
                 currentY = e.clientY - initialY;
 
-                // Constrain to viewport
                 const maxX = window.innerWidth - windowElement.offsetWidth;
                 const maxY = window.innerHeight - windowElement.offsetHeight;
                 
@@ -165,9 +160,13 @@ document.addEventListener('DOMContentLoaded', function() {
         header.style.userSelect = 'none';
     }
 
-    // Start Menu functionality
     document.getElementById('start').addEventListener('click', function() {
-        console.log('Start button clicked!'); // Debug log
+        const existingStartMenu = openWindows.find(w => w.classList.contains('start-menu-window'));
+        
+        if (existingStartMenu) {
+            closeWindow(existingStartMenu);
+            return;
+        }
         
         const startMenuContent = `
             <div class="start-menu">
@@ -187,21 +186,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="start-icon">🐸</span>
                     <span>About FrogOS</span>
                 </div>
+                <hr style="margin: 10px 0; border: 1px solid rgba(255,255,255,0.2);">
+                <div class="start-menu-item" data-app="lock">
+                    <span class="start-icon">🔒</span>
+                    <span>Lock Screen</span>
+                </div>
             </div>
         `;
         
-        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '280px', false, true);
+        const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '320px', false, true);
         
-        // Position start menu near start button
         startWindow.style.bottom = '80px';
         startWindow.style.left = '20px';
         startWindow.style.top = 'auto';
         startWindow.style.transform = 'none';
         
-        // Mark this as start menu for click outside detection
         startWindow.classList.add('start-menu-window');
         
-        // Add click handlers for start menu items
         startWindow.querySelectorAll('.start-menu-item').forEach(item => {
             item.addEventListener('click', function() {
                 const app = this.getAttribute('data-app');
@@ -210,7 +211,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Function to open start menu applications
     function openStartApp(app) {
         switch(app) {
             case 'froggle':
@@ -225,10 +225,12 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'about':
                 openAbout();
                 break;
+            case 'lock':
+                window.location.href = 'index.html';
+                break;
         }
     }
 
-    // Froggle Browser
     function openFroggleBrowser() {
         const browserContent = `
             <div class="froggle-logo">
@@ -275,7 +277,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Calculator
     function openCalculator() {
         const calcContent = `
             <div class="calculator">
@@ -306,7 +307,6 @@ document.addEventListener('DOMContentLoaded', function() {
         createWindow('🔢 Frog Calculator', calcContent, '400px', '500px');
     }
 
-    // Notes
     function openNotes() {
         const notesContent = `
             <textarea class="notepad-area" placeholder="Write your froggy thoughts here...
@@ -321,7 +321,6 @@ document.addEventListener('DOMContentLoaded', function() {
         createWindow('📝 Lily Pad Notes', notesContent, '500px', '450px');
     }
 
-    // About
     function openAbout() {
         const aboutContent = `
             <div class="about-content">
@@ -340,7 +339,6 @@ document.addEventListener('DOMContentLoaded', function() {
         createWindow('🐸 About FrogOS', aboutContent, '450px', '400px');
     }
 
-    // Desktop icon functionality
     document.getElementById('music').addEventListener('click', function() {
         const musicContent = `
             <div class="music-player">
@@ -450,13 +448,10 @@ document.addEventListener('DOMContentLoaded', function() {
         createWindow('📁 Swamp Explorer', filesContent, '500px', '400px');
     });
 
-    // Click outside to close start menu only
     document.addEventListener('click', function(e) {
-        // Find start menu window in openWindows
         const startMenuWindow = openWindows.find(w => w.classList.contains('start-menu-window'));
         
         if (startMenuWindow) {
-            // Check if click is outside start menu and not on start button
             if (!e.target.closest('.start-menu-window') && !e.target.closest('#start')) {
                 closeWindow(startMenuWindow);
             }
@@ -464,7 +459,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Calculator functions (global scope for onclick handlers)
 let calcDisplay = '0';
 
 function appendToCalc(value) {
