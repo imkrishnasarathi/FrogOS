@@ -81,7 +81,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const closeBtn = window.querySelector('.window-close');
         if (closeBtn) {
-            closeBtn.addEventListener('click', () => closeWindow(window));
+            closeBtn.addEventListener('click', () => {
+                if (window.querySelector('.music-player')) {
+                    const audioElements = window.querySelectorAll('audio');
+                    audioElements.forEach(audio => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    });
+                    
+                    const intervals = window.musicIntervals || [];
+                    intervals.forEach(interval => clearInterval(interval));
+                    window.musicIntervals = [];
+                }
+                closeWindow(window);
+            });
         }
         
         if (showCloseButton) {
@@ -350,6 +363,16 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p class="artist">The Swamp Singers</p>
                     </div>
                 </div>
+                <div class="progress-section">
+                    <div class="time-display">
+                        <span class="current-time">0:00</span>
+                        <span class="total-time">3:24</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                        <div class="progress-handle"></div>
+                    </div>
+                </div>
                 <div class="player-controls">
                     <button class="control-btn" id="prev">⏮</button>
                     <button class="control-btn play-pause" id="play-pause">▶</button>
@@ -357,23 +380,212 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="playlist">
                     <h4>🐸 Croaking Hits</h4>
-                    <div class="playlist-item active">1. Midnight Pond Chorus</div>
-                    <div class="playlist-item">2. Ribbit Rhapsody</div>
-                    <div class="playlist-item">3. Lily Pad Lullaby</div>
-                    <div class="playlist-item">4. Swamp Serenade</div>
+                    <div class="playlist-item active" data-track="0">1. Midnight Pond Chorus - The Swamp Singers</div>
+                    <div class="playlist-item" data-track="1">2. Ribbit Rhapsody - Lily Pad Orchestra</div>
                 </div>
             </div>
         `;
         
-        const musicWindow = createWindow('🎵 FrogBeats Music', musicContent, '500px', '550px');
+        const musicWindow = createWindow('🎵 FrogBeats Music', musicContent, '500px', '480px');
+        
+        window.musicIntervals = window.musicIntervals || [];
         
         const playBtn = musicWindow.querySelector('#play-pause');
+        const prevBtn = musicWindow.querySelector('#prev');
+        const nextBtn = musicWindow.querySelector('#next');
+        const trackTitle = musicWindow.querySelector('.track-title');
+        const artist = musicWindow.querySelector('.artist');
+        const playlistItems = musicWindow.querySelectorAll('.playlist-item');
+        const progressBar = musicWindow.querySelector('.progress-bar');
+        const progressFill = musicWindow.querySelector('.progress-fill');
+        const progressHandle = musicWindow.querySelector('.progress-handle');
+        const currentTimeEl = musicWindow.querySelector('.current-time');
+        const totalTimeEl = musicWindow.querySelector('.total-time');
+        
         let isPlaying = false;
+        let currentTrack = 0;
+        let audioElement = null;
+        let progressInterval = null;
+        
+        const tracks = [
+            {
+                title: "Midnight Pond Chorus",
+                artist: "The Swamp Singers",
+                file: "song1.mp3",
+                duration: "3:24"
+            },
+            {
+                title: "Ribbit Rhapsody", 
+                artist: "Lily Pad Orchestra",
+                file: "song2.mp3",
+                duration: "2:47"
+            }
+        ];
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateProgress() {
+            if (audioElement && !isNaN(audioElement.duration)) {
+                const progress = (audioElement.currentTime / audioElement.duration) * 100;
+                progressFill.style.width = progress + '%';
+                progressHandle.style.left = progress + '%';
+                currentTimeEl.textContent = formatTime(audioElement.currentTime);
+                totalTimeEl.textContent = formatTime(audioElement.duration);
+            }
+        }
+        
+        function updateTrackInfo() {
+            trackTitle.textContent = tracks[currentTrack].title;
+            artist.textContent = tracks[currentTrack].artist;
+            totalTimeEl.textContent = tracks[currentTrack].duration;
+            currentTimeEl.textContent = "0:00";
+            progressFill.style.width = '0%';
+            progressHandle.style.left = '0%';
+            
+            playlistItems.forEach((item, index) => {
+                item.classList.toggle('active', index === currentTrack);
+            });
+        }
+        
+        function playCurrentTrack() {
+            if (audioElement) {
+                audioElement.pause();
+            }
+            
+            audioElement = new Audio(tracks[currentTrack].file);
+            audioElement.play().catch(e => {
+                console.log('Audio play failed:', e);
+                simulateProgress();
+            });
+            
+            isPlaying = true;
+            playBtn.textContent = '⏸';
+            
+            progressInterval = setInterval(updateProgress, 100);
+            window.musicIntervals.push(progressInterval);
+            
+            audioElement.addEventListener('ended', () => {
+                nextTrack();
+            });
+            
+            audioElement.addEventListener('loadedmetadata', () => {
+                totalTimeEl.textContent = formatTime(audioElement.duration);
+            });
+        }
+        
+        function simulateProgress() {
+            let simulatedTime = 0;
+            const trackDuration = currentTrack === 0 ? 204 : 167;
+            
+            progressInterval = setInterval(() => {
+                simulatedTime += 0.1;
+                const progress = (simulatedTime / trackDuration) * 100;
+                
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    nextTrack();
+                    return;
+                }
+                
+                progressFill.style.width = progress + '%';
+                progressHandle.style.left = progress + '%';
+                currentTimeEl.textContent = formatTime(simulatedTime);
+            }, 100);
+            
+            window.musicIntervals.push(progressInterval);
+        }
+        
+        function pauseTrack() {
+            if (audioElement) {
+                audioElement.pause();
+            }
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            isPlaying = false;
+            playBtn.textContent = '▶';
+        }
+        
+        function nextTrack() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            currentTrack = (currentTrack + 1) % tracks.length;
+            updateTrackInfo();
+            if (isPlaying) {
+                playCurrentTrack();
+            }
+        }
+        
+        function prevTrack() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+            }
+            currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
+            updateTrackInfo();
+            if (isPlaying) {
+                playCurrentTrack();
+            }
+        }
         
         playBtn.addEventListener('click', function() {
-            isPlaying = !isPlaying;
-            this.textContent = isPlaying ? '⏸' : '▶';
+            if (isPlaying) {
+                pauseTrack();
+            } else {
+                playCurrentTrack();
+            }
         });
+        
+        nextBtn.addEventListener('click', nextTrack);
+        prevBtn.addEventListener('click', prevTrack);
+        
+        progressBar.addEventListener('click', function(e) {
+            const rect = progressBar.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const percentage = (clickX / rect.width) * 100;
+            
+            progressFill.style.width = percentage + '%';
+            progressHandle.style.left = percentage + '%';
+            
+            if (audioElement && !isNaN(audioElement.duration)) {
+                audioElement.currentTime = (percentage / 100) * audioElement.duration;
+            }
+        });
+        
+        playlistItems.forEach((item, index) => {
+            item.addEventListener('click', function() {
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                currentTrack = index;
+                updateTrackInfo();
+                if (isPlaying) {
+                    playCurrentTrack();
+                }
+            });
+        });
+        
+        updateTrackInfo();
+        
+        const musicCloseBtn = musicWindow.querySelector('.window-close');
+        if (musicCloseBtn) {
+            musicCloseBtn.addEventListener('click', () => {
+                if (audioElement) {
+                    audioElement.pause();
+                    audioElement.currentTime = 0;
+                }
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
+                window.musicIntervals.forEach(interval => clearInterval(interval));
+                window.musicIntervals = [];
+                closeWindow(musicWindow);
+            });
+        }
     });
 
     document.getElementById('settings').addEventListener('click', function() {
@@ -425,19 +637,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="file-path">📁 /home/frog/Documents</div>
                 </div>
                 <div class="file-list">
-                    <div class="file-item folder">
+                    <div class="file-item folder" data-action="open-folder">
                         <span class="file-icon">📁</span>
                         <span class="file-name">Lily Pad Photos</span>
                     </div>
-                    <div class="file-item">
+                    <div class="file-item" data-action="play-audio">
                         <span class="file-icon">🎵</span>
                         <span class="file-name">best_ribbit_ever.wav</span>
                     </div>
-                    <div class="file-item">
+                    <div class="file-item" data-action="open-text">
                         <span class="file-icon">📝</span>
                         <span class="file-name">fly_hunting_tips.txt</span>
                     </div>
-                    <div class="file-item">
+                    <div class="file-item" data-action="view-image">
                         <span class="file-icon">🖼️</span>
                         <span class="file-name">pond_sunset.jpg</span>
                     </div>
@@ -445,8 +657,124 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        createWindow('📁 Swamp Explorer', filesContent, '500px', '400px');
+        const fileWindow = createWindow('📁 Swamp Explorer', filesContent, '500px', '400px');
+        
+        fileWindow.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                const fileName = this.querySelector('.file-name').textContent;
+                
+                switch(action) {
+                    case 'open-folder':
+                        openFolder(fileName);
+                        break;
+                    case 'play-audio':
+                        playAudioFile(fileName);
+                        break;
+                    case 'open-text':
+                        openTextFile(fileName);
+                        break;
+                    case 'view-image':
+                        viewImage(fileName);
+                        break;
+                }
+            });
+        });
     });
+
+    function openFolder(folderName) {
+        const folderContent = `
+            <div class="file-explorer">
+                <div class="file-header">
+                    <div class="file-path">📁 /home/frog/Documents/${folderName}</div>
+                </div>
+                <div class="file-list">
+                    <div class="file-item" data-action="view-image">
+                        <span class="file-icon">📸</span>
+                        <span class="file-name">lily_pad_morning.jpg</span>
+                    </div>
+                    <div class="file-item" data-action="view-image">
+                        <span class="file-icon">📸</span>
+                        <span class="file-name">frog_family.jpg</span>
+                    </div>
+                    <div class="file-item" data-action="view-image">
+                        <span class="file-icon">📸</span>
+                        <span class="file-name">pond_reflection.jpg</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        createWindow(`📁 ${folderName}`, folderContent, '500px', '400px');
+    }
+
+    function playAudioFile(fileName) {
+        const audioContent = `
+            <div class="audio-player">
+                <h3>🎵 Now Playing</h3>
+                <p class="audio-title">${fileName}</p>
+                <div class="audio-controls">
+                    <button class="audio-btn" onclick="playSound()">▶️ Play</button>
+                    <button class="audio-btn" onclick="pauseSound()">⏸️ Pause</button>
+                    <button class="audio-btn" onclick="stopSound()">⏹️ Stop</button>
+                </div>
+                <p class="audio-info">🐸 A beautiful ribbit melody from the pond</p>
+            </div>
+        `;
+        createWindow('🎵 Audio Player', audioContent, '400px', '300px');
+    }
+
+    function openTextFile(fileName) {
+        let fileContent = '';
+        if (fileName === 'fly_hunting_tips.txt') {
+            fileContent = `🐸 Fly Hunting Tips for Frogs 🪰
+
+1. Best hunting times:
+   - Early morning (5-7 AM)
+   - Late evening (6-8 PM)
+   - After rain showers
+
+2. Positioning tips:
+   - Stay perfectly still on lily pad
+   - Keep eyes focused on flight patterns
+   - Tongue ready at all times
+
+3. Advanced techniques:
+   - The Lightning Strike: Quick tongue extension
+   - The Patience Method: Wait for perfect moment
+   - The Group Hunt: Coordinate with other frogs
+
+4. Seasonal advice:
+   - Spring: Flies are slower, easier targets
+   - Summer: Peak fly season, competition high
+   - Fall: Prepare for winter storage
+
+Happy hunting! 🐸`;
+        }
+        
+        const textContent = `
+            <div class="text-viewer">
+                <div class="text-header">📝 ${fileName}</div>
+                <div class="text-content">${fileContent}</div>
+            </div>
+        `;
+        createWindow(`📝 ${fileName}`, textContent, '600px', '500px');
+    }
+
+    function viewImage(fileName) {
+        const imageContent = `
+            <div class="image-viewer">
+                <div class="image-header">🖼️ ${fileName}</div>
+                <div class="image-container">
+                    <div class="image-placeholder">
+                        <span class="placeholder-icon">🖼️</span>
+                        <p>Image: ${fileName}</p>
+                        <p class="image-description">A beautiful view from the pond</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        createWindow(`🖼️ ${fileName}`, imageContent, '500px', '400px');
+    }
 
     document.addEventListener('click', function(e) {
         const startMenuWindow = openWindows.find(w => w.classList.contains('start-menu-window'));
@@ -494,4 +822,16 @@ function calculate() {
             document.getElementById('calc-display').textContent = calcDisplay;
         }, 2000);
     }
+}
+
+function playSound() {
+    console.log('Playing audio file...');
+}
+
+function pauseSound() {
+    console.log('Pausing audio file...');
+}
+
+function stopSound() {
+    console.log('Stopping audio file...');
 }
