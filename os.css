@@ -5,46 +5,133 @@ body{
     background: linear-gradient(54deg,rgb(82, 142, 86) 0%, rgb(106, 156, 87) 55%, rgb(104, 149, 78) 100% 100%);
     min-height: 100vh;
     overflow: hidden;
+    position: relative;
 }
+
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    body::before {
+        content: "Please rotate your device to landscape mode for the best FrogOS experience";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 16px;
+        padding: 20px;
+        box-sizing: border-box;
+        z-index: 10000;
+    }
+    
+    .icons, .taskbar {
+        display: none;
+    }
+}
+
 .icons{
     display: flex;
     padding-left: 1rem;
     padding-top: 1rem;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10;
 }
 
 .icons img{
     border-radius: 50%;
-    width: 5rem;
-    height: 5rem;
+    width: 4rem;
+    height: 4rem;
     cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.icons img:hover {
+    transform: scale(1.1);
+}
+
+@media screen and (max-width: 1024px) {
+    .icons {
+        gap: 10px;
+        padding-left: 0.5rem;
+        padding-top: 0.5rem;
+    }
+    
+    .icons img {
+        width: 3rem;
+        height: 3rem;
+    }
 }
 
 .taskbar{
     box-sizing: border-box;
-    position: absolute;
+    position: fixed;
     bottom: 0;
+    left: 0;
     display: flex;
     background-color: #205201;
-    height: 4rem;
+    height: 3.5rem;
     width: 100vw;
     align-items: center;
     justify-content: space-between;
-    padding-left: 1rem;
-    padding-right: 1rem;
+    padding: 0 1rem;
+    z-index: 100;
 }
 
 .taskbar img{
-    height: 4rem;
-    width: 4rem;
+    height: 3rem;
+    width: 3rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.taskbar img:hover {
+    transform: scale(1.1);
 }
 
 .taskbar-icons{
     display: flex;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
-    margin-left: 1rem;
+}
+
+.taskbar-icons p {
+    color: white;
+    margin: 0;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+@media screen and (max-width: 1024px) {
+    .taskbar {
+        height: 3rem;
+        padding: 0 0.5rem;
+    }
+    
+    .taskbar img {
+        height: 2.5rem;
+        width: 2.5rem;
+    }
+    
+    .taskbar-icons {
+        gap: 10px;
+    }
+    
+    .taskbar-icons p {
+        font-size: 0.9rem;
+    }
+    
+    .taskbar-icons img {
+        height: 2rem;
+        width: 2rem;
+    }
 }
 
 #start:hover{
@@ -64,17 +151,39 @@ body{
 
 .window {
     position: absolute;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    min-width: 300px;
+    min-height: 200px;
+    max-width: 95vw;
+    max-height: 90vh;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #f0f0f0;
-    border: 2px solid #333;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    z-index: 1000;
     overflow: hidden;
-    max-width: 90vw;
-    max-height: 90vh;
+    resize: both;
+}
+
+@media screen and (max-width: 1024px) {
+    .window {
+        min-width: 280px;
+        max-width: 98vw;
+        max-height: 85vh;
+        resize: none;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .window {
+        min-width: 95vw;
+        width: 95vw !important;
+        max-height: 80vh;
+        left: 50% !important;
+        top: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        margin: 0 !important;
+    }
 }
 
 .window:hover {
@@ -123,6 +232,14 @@ body{
     padding: 15px;
     max-height: calc(100% - 40px);
     overflow-y: auto;
+    box-sizing: border-box;
+}
+
+@media screen and (max-width: 768px) {
+    .window-content {
+        padding: 10px;
+        font-size: 14px;
+    }
 }
 
 .start-menu-item {
@@ -142,6 +259,19 @@ body{
     width: 24px;
     height: 24px;
     margin-right: 10px;
+}
+
+@media screen and (max-width: 768px) {
+    .start-menu-item {
+        padding: 12px;
+        font-size: 16px;
+    }
+    
+    .start-icon {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+    }
 }
 
 .browser-header {
@@ -263,6 +393,27 @@ body{
 
 .calc-btn.zero {
     grid-column: span 2;
+}
+
+@media screen and (max-width: 768px) {
+    .calculator {
+        padding: 15px;
+    }
+    
+    .calc-display {
+        font-size: 1.5em;
+        padding: 10px;
+        min-height: 30px;
+    }
+    
+    .calc-buttons {
+        gap: 8px;
+    }
+    
+    .calc-btn {
+        padding: 15px;
+        font-size: 16px;
+    }
 }
 
 .notepad-area {

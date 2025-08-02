@@ -7,6 +7,32 @@ body{
     background-size: cover;
     min-height: 100vh;
     transition: opacity 0.5s ease;
+    overflow-x: hidden;
+}
+
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    body::before {
+        content: "Please rotate your device to landscape mode for the best FrogOS experience";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        font-size: 18px;
+        padding: 20px;
+        box-sizing: border-box;
+        z-index: 10000;
+    }
+    
+    .container {
+        display: none;
+    }
 }
 
 .container {
@@ -14,23 +40,29 @@ body{
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 #login-elements {
-    margin-top: 15vh;
     text-align: center;
     color: white;
-    margin-bottom: 150px;
+    width: 100%;
+    max-width: 400px;
+    z-index: 100;
+    position: relative;
 }
 #login-elements img {
-    width: 12rem;
-    height: 12rem;
+    width: 8rem;
+    height: 8rem;
     border-radius: 50%;
-    margin-bottom: 40px;
+    margin-bottom: 20px;
 }
+
 #login-elements h1 {
-    font-size: 2rem;
-    margin: 20px 0 40px 0;
+    font-size: 1.8rem;
+    margin: 15px 0 25px 0;
     font-weight: 300;
 }
 
@@ -43,9 +75,11 @@ body{
     font-size: 16px;
     text-align: center;
     outline: none;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
     backdrop-filter: blur(10px);
-    width: 20rem;
+    width: 100%;
+    max-width: 300px;
+    box-sizing: border-box;
 }
 
 #password::placeholder {
@@ -82,25 +116,64 @@ body{
 }
 
 .os-logo {
-    position: absolute;
-    bottom: 30px;
-    left: 0;
-    right: 0;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     text-align: center;
     color: white;
+    z-index: 1;
 }
+
 .os-logo img {
-    width: 80px;
+    width: 60px;
     border-radius: 50%;
 }
+
 .os-logo h2 {
-    font-size: 1.5rem;
-    margin: 10px 0;
+    font-size: 1.2rem;
+    margin: 8px 0;
 }
 
 #hint{
-    margin-top: 1rem;
-    font-size: 1rem;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    padding: 0 20px;
+}
+
+@media screen and (max-width: 768px) {
+    #login-elements img {
+        width: 6rem;
+        height: 6rem;
+    }
+    
+    #login-elements h1 {
+        font-size: 1.5rem;
+        margin: 10px 0 20px 0;
+    }
+    
+    #password {
+        font-size: 16px;
+        padding: 10px 15px;
+        max-width: 280px;
+    }
+    
+    #login-btn {
+        padding: 10px 25px;
+        font-size: 15px;
+    }
+    
+    .os-logo {
+        bottom: 15px;
+    }
+    
+    .os-logo img {
+        width: 50px;
+    }
+    
+    .os-logo h2 {
+        font-size: 1rem;
+    }
 }
 
 .loading-overlay {

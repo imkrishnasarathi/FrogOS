@@ -47,8 +47,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const window = document.createElement('div');
         window.className = 'window';
-        window.style.width = width;
-        window.style.height = height;
+        
+        if (window.innerWidth <= 768) {
+            window.style.width = '95vw';
+            window.style.height = Math.min(parseInt(height), window.innerHeight * 0.8) + 'px';
+        } else {
+            window.style.width = width;
+            window.style.height = height;
+        }
+        
         window.style.zIndex = nextZIndex++;
         
         const closeButtonHtml = showCloseButton ? '<button class="window-close">×</button>' : '';
@@ -68,11 +75,17 @@ document.addEventListener('DOMContentLoaded', function() {
         openWindows.push(window);
         
         if (!isStartMenu) {
-            windowOffset += 30;
-            if (windowOffset > 150) windowOffset = 0; 
-            
-            window.style.top = `calc(50% + ${windowOffset}px)`;
-            window.style.left = `calc(50% + ${windowOffset}px)`;
+            if (window.innerWidth <= 768) {
+                window.style.top = '10vh';
+                window.style.left = '50%';
+                window.style.transform = 'translateX(-50%)';
+            } else {
+                windowOffset += 30;
+                if (windowOffset > 150) windowOffset = 0; 
+                
+                window.style.top = `calc(50% + ${windowOffset}px)`;
+                window.style.left = `calc(50% + ${windowOffset}px)`;
+            }
         }
         
         if (isStartMenu) {
