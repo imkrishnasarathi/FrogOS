@@ -1,4 +1,60 @@
 document.addEventListener('DOMContentLoaded', function() {
+    const savedWallpaper = localStorage.getItem('frogos-wallpaper');
+    const savedCroakEnabled = localStorage.getItem('frogos-croak-enabled');
+    
+    if (savedWallpaper) {
+        document.body.style.background = savedWallpaper;
+    }
+    
+    if (savedCroakEnabled === null || savedCroakEnabled === 'true') {
+        setTimeout(() => {
+            playBootCroakSound();
+        }, 1000);
+    }
+    
+    function playBootCroakSound() {
+        const croakAudio = new Audio();
+        croakAudio.volume = 0.3;
+        
+        croakAudio.src = 'startup.mp3';
+        croakAudio.play().catch(() => {
+            console.log('🐸 Ribbit! Welcome to FrogOS!');
+            
+            const croakNotification = document.createElement('div');
+            croakNotification.innerHTML = '🐸 Ribbit! Welcome to FrogOS!';
+            croakNotification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(76, 175, 80, 0.9);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-weight: bold;
+                z-index: 10000;
+                animation: fadeInOut 3s ease-in-out;
+            `;
+            
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeInOut {
+                    0% { opacity: 0; transform: translateY(-20px); }
+                    20% { opacity: 1; transform: translateY(0); }
+                    80% { opacity: 1; transform: translateY(0); }
+                    100% { opacity: 0; transform: translateY(-20px); }
+                }
+            `;
+            document.head.appendChild(style);
+            document.body.appendChild(croakNotification);
+            
+            setTimeout(() => {
+                document.body.removeChild(croakNotification);
+                document.head.removeChild(style);
+            }, 3000);
+        });
+    }
+
     function updateTime() {
         const now = new Date();
         const hours = now.getHours().toString().padStart(2, '0');
@@ -106,6 +162,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     intervals.forEach(interval => clearInterval(interval));
                     window.musicIntervals = [];
                 }
+                
+                // Cleanup games
+                if (window.gameCleanup) {
+                    window.gameCleanup();
+                }
+                
                 closeWindow(window);
             });
         }
@@ -601,6 +663,847 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // ====== GAMING SUITE ======
+    function createGamesWindow() {
+        const gamesContent = `
+            <div class="games-container">
+                <div class="games-header">
+                    <h2>🎮 FrogOS Gaming Suite</h2>
+                    <p>Choose your adventure in the pond!</p>
+                </div>
+                <div class="games-grid">
+                    <div class="game-card" data-game="frogger">
+                        <div class="game-icon">🐸</div>
+                        <h3>Frogger Classic</h3>
+                        <p>Cross the busy pond!</p>
+                    </div>
+                    <div class="game-card" data-game="lilypad">
+                        <div class="game-icon">🪷</div>
+                        <h3>Lily Pad Jump</h3>
+                        <p>Jump from pad to pad!</p>
+                    </div>
+                    <div class="game-card" data-game="memory">
+                        <div class="game-icon">🧠</div>
+                        <h3>Pond Memory</h3>
+                        <p>Match the lily pads!</p>
+                    </div>
+                    <div class="game-card" data-game="tetris">
+                        <div class="game-icon">🧩</div>
+                        <h3>Swamp Blocks</h3>
+                        <p>Tetris in the swamp!</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        const gameWindow = createWindow('🎮 FrogOS Games', gamesContent, '550px', '450px');
+        
+        const gameCards = gameWindow.querySelectorAll('.game-card');
+        gameCards.forEach(card => {
+            card.addEventListener('click', function() {
+                const gameType = this.dataset.game;
+                startGame(gameType);
+            });
+        });
+    }
+
+    function startGame(gameType) {
+        switch(gameType) {
+            case 'frogger':
+                createFroggerGame();
+                break;
+            case 'lilypad':
+                createLilyPadGame();
+                break;
+            case 'memory':
+                createMemoryGame();
+                break;
+            case 'tetris':
+                createTetrisGame();
+                break;
+        }
+    }
+
+    window.startGame = startGame;
+
+    function createFroggerGame() {
+        const froggerContent = `
+            <div class="game-container">
+                <div class="game-header">
+                    <h3>🐸 Frogger Classic</h3>
+                    <div class="game-stats">
+                        <span>Score: <span id="frogger-score">0</span></span>
+                        <span>Lives: <span id="frogger-lives">3</span></span>
+                        <button id="frogger-reset" class="game-btn">Reset</button>
+                    </div>
+                </div>
+                <canvas id="frogger-canvas" width="400" height="300"></canvas>
+                <div class="game-controls">
+                    <p>Use WASD or Arrow Keys to move</p>
+                    <p>Cross the road without getting hit by cars!</p>
+                </div>
+            </div>
+        `;
+        const gameWindow = createWindow('🐸 Frogger Game', froggerContent, '450px', '480px');
+        
+        const resetBtn = gameWindow.querySelector('#frogger-reset');
+        resetBtn.addEventListener('click', () => {
+            if (window.resetFrogger) {
+                window.resetFrogger();
+            }
+        });
+        
+        gameWindow.gameCleanup = function() {
+            if (window.froggerGameLoop) {
+                window.froggerGameLoop = false;
+            }
+        };
+        
+        initFroggerGame();
+    }
+
+    function initFroggerGame() {
+        const canvas = document.getElementById('frogger-canvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            frog: { x: 200, y: 280, size: 20 },
+            cars: [],
+            score: 0,
+            lives: 3,
+            gameRunning: true
+        };
+
+        function spawnCar() {
+            const lanes = [50, 100, 150, 200];
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            const speed = 2 + Math.random() * 3;
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const startX = direction > 0 ? -30 : canvas.width + 30;
+            
+            gameState.cars.push({
+                x: startX,
+                y: lane,
+                width: 40,
+                height: 20,
+                speed: speed * direction,
+                color: `hsl(${Math.random() * 360}, 70%, 50%)`
+            });
+        }
+
+        function updateGame() {
+            if (!gameState.gameRunning) return;
+            
+            gameState.cars.forEach(car => car.x += car.speed);
+            
+            gameState.cars = gameState.cars.filter(car => 
+                car.x > -50 && car.x < canvas.width + 50
+            );
+            
+            gameState.cars.forEach(car => {
+                if (gameState.frog.x < car.x + car.width &&
+                    gameState.frog.x + gameState.frog.size > car.x &&
+                    gameState.frog.y < car.y + car.height &&
+                    gameState.frog.y + gameState.frog.size > car.y) {
+                    
+                    gameState.lives--;
+                    gameState.frog = { x: 200, y: 280, size: 20 };
+                    
+                    if (gameState.lives <= 0) {
+                        gameState.gameRunning = false;
+                        alert('Game Over! Final Score: ' + gameState.score);
+                    }
+                }
+            });
+            
+            if (gameState.frog.y < 30) {
+                gameState.score += 100;
+                gameState.frog = { x: 200, y: 280, size: 20 };
+            }
+            
+            if (Math.random() < 0.02) {
+                spawnCar();
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = '#2d5016';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 40, canvas.width, 180);
+            
+            ctx.strokeStyle = '#fff';
+            ctx.setLineDash([10, 10]);
+            for (let i = 90; i <= 170; i += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            
+            gameState.cars.forEach(car => {
+                ctx.fillStyle = car.color;
+                ctx.fillRect(car.x, car.y, car.width, car.height);
+                
+                ctx.fillStyle = '#000';
+                ctx.fillRect(car.x + 5, car.y + 15, 8, 8);
+                ctx.fillRect(car.x + 27, car.y + 15, 8, 8);
+            });
+            
+            ctx.fillStyle = '#0f7b0f';
+            ctx.fillRect(gameState.frog.x, gameState.frog.y, gameState.frog.size, gameState.frog.size);
+            
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(gameState.frog.x + 3, gameState.frog.y + 3, 4, 4);
+            ctx.fillRect(gameState.frog.x + 13, gameState.frog.y + 3, 4, 4);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(gameState.frog.x + 4, gameState.frog.y + 4, 2, 2);
+            ctx.fillRect(gameState.frog.x + 14, gameState.frog.y + 4, 2, 2);
+            
+            const scoreEl = document.getElementById('frogger-score');
+            const livesEl = document.getElementById('frogger-lives');
+            if (scoreEl) scoreEl.textContent = gameState.score;
+            if (livesEl) livesEl.textContent = gameState.lives;
+        }
+
+        function handleKeyPress(e) {
+            if (!gameState.gameRunning) return;
+            
+            const step = 20;
+            switch(e.key.toLowerCase()) {
+                case 'w':
+                case 'arrowup':
+                    if (gameState.frog.y > 0) gameState.frog.y -= step;
+                    break;
+                case 's':
+                case 'arrowdown':
+                    if (gameState.frog.y < canvas.height - gameState.frog.size) gameState.frog.y += step;
+                    break;
+                case 'a':
+                case 'arrowleft':
+                    if (gameState.frog.x > 0) gameState.frog.x -= step;
+                    break;
+                case 'd':
+                case 'arrowright':
+                    if (gameState.frog.x < canvas.width - gameState.frog.size) gameState.frog.x += step;
+                    break;
+            }
+        }
+
+        document.addEventListener('keydown', handleKeyPress);
+        
+        window.resetFrogger = function() {
+            gameState = {
+                frog: { x: 200, y: 280, size: 20 },
+                cars: [],
+                score: 0,
+                lives: 3,
+                gameRunning: true
+            };
+        };
+
+        // Game loop
+        window.froggerGameLoop = true;
+        function gameLoop() {
+            if (!window.froggerGameLoop) return;
+            updateGame();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    }
+
+    function createLilyPadGame() {
+        const lilypadContent = `
+            <div class="game-container">
+                <div class="game-header">
+                    <h3>🪷 Lily Pad Jump</h3>
+                    <div class="game-stats">
+                        <span>Score: <span id="lilypad-score">0</span></span>
+                        <span>Time: <span id="lilypad-time">60</span>s</span>
+                        <button id="lilypad-reset" class="game-btn">Reset</button>
+                    </div>
+                </div>
+                <canvas id="lilypad-canvas" width="400" height="300"></canvas>
+                <div class="game-controls">
+                    <p>Click lily pads to jump! Avoid the water!</p>
+                </div>
+            </div>
+        `;
+        const gameWindow = createWindow('🪷 Lily Pad Jump', lilypadContent, '450px', '480px');
+        
+        const resetBtn = gameWindow.querySelector('#lilypad-reset');
+        resetBtn.addEventListener('click', () => {
+            if (window.resetLilyPad) {
+                window.resetLilyPad();
+            }
+        });
+        
+        gameWindow.gameCleanup = function() {
+            if (window.lilypadTimer) {
+                clearInterval(window.lilypadTimer);
+                window.lilypadTimer = null;
+            }
+            if (window.lilypadGameLoop) {
+                window.lilypadGameLoop = false;
+            }
+        };
+        
+        initLilyPadGame();
+    }
+
+    function initLilyPadGame() {
+        const canvas = document.getElementById('lilypad-canvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        
+        let gameState = {
+            frog: { x: 200, y: 250, size: 25, jumping: false },
+            lilypads: [],
+            score: 0,
+            timeLeft: 60,
+            gameRunning: true
+        };
+
+        function generateLilyPads() {
+            gameState.lilypads = [];
+            for (let i = 0; i < 8; i++) {
+                gameState.lilypads.push({
+                    x: 50 + Math.random() * 300,
+                    y: 50 + Math.random() * 200,
+                    size: 30 + Math.random() * 20,
+                    clicked: false
+                });
+            }
+        }
+
+        function drawGame() {
+            ctx.fillStyle = '#4a90e2';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            gameState.lilypads.forEach(pad => {
+                ctx.fillStyle = pad.clicked ? '#8b4513' : '#228b22';
+                ctx.beginPath();
+                ctx.arc(pad.x, pad.y, pad.size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                if (!pad.clicked) {
+                    ctx.fillStyle = '#32cd32';
+                    ctx.beginPath();
+                    ctx.arc(pad.x, pad.y, pad.size * 0.7, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            ctx.fillStyle = '#0f7b0f';
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x, gameState.frog.y, gameState.frog.size, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x - 8, gameState.frog.y - 8, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x + 8, gameState.frog.y - 8, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x - 8, gameState.frog.y - 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(gameState.frog.x + 8, gameState.frog.y - 8, 2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            const scoreEl = document.getElementById('lilypad-score');
+            const timeEl = document.getElementById('lilypad-time');
+            if (scoreEl) scoreEl.textContent = gameState.score;
+            if (timeEl) timeEl.textContent = gameState.timeLeft;
+        }
+
+        function handleClick(e) {
+            if (!gameState.gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            gameState.lilypads.forEach(pad => {
+                const distance = Math.sqrt((clickX - pad.x) ** 2 + (clickY - pad.y) ** 2);
+                if (distance <= pad.size && !pad.clicked) {
+                    pad.clicked = true;
+                    gameState.frog.x = pad.x;
+                    gameState.frog.y = pad.y;
+                    gameState.score += 10;
+                    
+                    if (gameState.lilypads.every(p => p.clicked)) {
+                        gameState.score += 50;
+                        generateLilyPads();
+                    }
+                }
+            });
+        }
+
+        canvas.addEventListener('click', handleClick);
+        
+        window.resetLilyPad = function() {
+            if (window.lilypadTimer) {
+                clearInterval(window.lilypadTimer);
+                window.lilypadTimer = null;
+            }
+            gameState = {
+                frog: { x: 200, y: 250, size: 25, jumping: false },
+                lilypads: [],
+                score: 0,
+                timeLeft: 60,
+                gameRunning: true
+            };
+            generateLilyPads();
+            window.lilypadTimer = setInterval(() => {
+                if (gameState.gameRunning) {
+                    gameState.timeLeft--;
+                    if (gameState.timeLeft <= 0) {
+                        gameState.gameRunning = false;
+                        clearInterval(window.lilypadTimer);
+                        window.lilypadTimer = null;
+                        alert('Time\'s up! Final Score: ' + gameState.score);
+                    }
+                }
+            }, 1000);
+        };
+
+        generateLilyPads();
+        
+        window.lilypadTimer = setInterval(() => {
+            if (gameState.gameRunning) {
+                gameState.timeLeft--;
+                if (gameState.timeLeft <= 0) {
+                    gameState.gameRunning = false;
+                    clearInterval(window.lilypadTimer);
+                    window.lilypadTimer = null;
+                    alert('Time\'s up! Final Score: ' + gameState.score);
+                }
+            }
+        }, 1000);
+
+        window.lilypadGameLoop = true;
+        function gameLoop() {
+            if (!window.lilypadGameLoop) return;
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    }
+
+    function createMemoryGame() {
+        const memoryContent = `
+            <div class="game-container">
+                <div class="game-header">
+                    <h3>🧠 Pond Memory</h3>
+                    <div class="game-stats">
+                        <span>Matches: <span id="memory-matches">0</span>/8</span>
+                        <span>Moves: <span id="memory-moves">0</span></span>
+                        <button id="memory-reset" class="game-btn">Reset</button>
+                    </div>
+                </div>
+                <div id="memory-board" class="memory-board"></div>
+                <div class="game-controls">
+                    <p>Match all the lily pad pairs!</p>
+                </div>
+            </div>
+        `;
+        const gameWindow = createWindow('🧠 Pond Memory', memoryContent, '450px', '550px');
+        
+        const resetBtn = gameWindow.querySelector('#memory-reset');
+        resetBtn.addEventListener('click', () => {
+            if (window.resetMemory) {
+                window.resetMemory();
+            }
+        });
+        
+        initMemoryGame();
+    }
+
+    function initMemoryGame() {
+        const board = document.getElementById('memory-board');
+        if (!board) return;
+        
+        let gameState = {
+            cards: [],
+            flippedCards: [],
+            matches: 0,
+            moves: 0,
+            gameRunning: true
+        };
+
+        const symbols = ['🐸', '🪷', '🪰', '🐍', '🦆', '🐢', '🐛', '🌿'];
+        
+        function createCards() {
+            const cardPairs = [...symbols, ...symbols];
+            cardPairs.sort(() => Math.random() - 0.5);
+            
+            board.innerHTML = '';
+            board.style.display = 'grid';
+            board.style.gridTemplateColumns = 'repeat(4, 1fr)';
+            board.style.gap = '10px';
+            board.style.padding = '20px';
+            
+            cardPairs.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.style.cssText = `
+                    width: 60px;
+                    height: 60px;
+                    background: #228b22;
+                    border: 2px solid #0f7b0f;
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    cursor: pointer;
+                    user-select: none;
+                    transition: all 0.3s ease;
+                `;
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                card.textContent = '?';
+                
+                card.addEventListener('click', () => flipCard(card, index));
+                board.appendChild(card);
+                gameState.cards.push(card);
+            });
+        }
+
+        function flipCard(card, index) {
+            if (!gameState.gameRunning || 
+                gameState.flippedCards.length >= 2 || 
+                gameState.flippedCards.includes(index) ||
+                card.classList.contains('matched')) {
+                return;
+            }
+            
+            card.textContent = card.dataset.symbol;
+            card.style.background = '#90EE90';
+            gameState.flippedCards.push(index);
+            
+            if (gameState.flippedCards.length === 2) {
+                gameState.moves++;
+                updateUI();
+                
+                setTimeout(() => {
+                    checkMatch();
+                }, 1000);
+            }
+        }
+
+        function checkMatch() {
+            const [index1, index2] = gameState.flippedCards;
+            const card1 = gameState.cards[index1];
+            const card2 = gameState.cards[index2];
+            
+            if (card1.dataset.symbol === card2.dataset.symbol) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                card1.style.background = '#FFD700';
+                card2.style.background = '#FFD700';
+                gameState.matches++;
+                
+                if (gameState.matches === 8) {
+                    setTimeout(() => {
+                        alert(`Congratulations! You won in ${gameState.moves} moves!`);
+                    }, 500);
+                }
+            } else {
+                card1.textContent = '?';
+                card2.textContent = '?';
+                card1.style.background = '#228b22';
+                card2.style.background = '#228b22';
+            }
+            
+            gameState.flippedCards = [];
+            updateUI();
+        }
+
+        function updateUI() {
+            const matchesEl = document.getElementById('memory-matches');
+            const movesEl = document.getElementById('memory-moves');
+            if (matchesEl) matchesEl.textContent = gameState.matches;
+            if (movesEl) movesEl.textContent = gameState.moves;
+        }
+        
+        window.resetMemory = function() {
+            gameState = {
+                cards: [],
+                flippedCards: [],
+                matches: 0,
+                moves: 0,
+                gameRunning: true
+            };
+            createCards();
+            updateUI();
+        };
+
+        createCards();
+        updateUI();
+    }
+
+    function createTetrisGame() {
+        const tetrisContent = `
+            <div class="game-container">
+                <div class="game-header">
+                    <h3>🧩 Swamp Blocks</h3>
+                    <div class="game-stats">
+                        <span>Score: <span id="tetris-score">0</span></span>
+                        <span>Lines: <span id="tetris-lines">0</span></span>
+                        <button id="tetris-reset" class="game-btn">Reset</button>
+                    </div>
+                </div>
+                <canvas id="tetris-canvas" width="300" height="400"></canvas>
+                <div class="game-controls">
+                    <p>A/D: Move, S: Drop, W: Rotate</p>
+                </div>
+            </div>
+        `;
+        const gameWindow = createWindow('🧩 Swamp Blocks', tetrisContent, '350px', '580px');
+        
+        const resetBtn = gameWindow.querySelector('#tetris-reset');
+        resetBtn.addEventListener('click', () => {
+            if (window.resetTetris) {
+                window.resetTetris();
+            }
+        });
+        
+        gameWindow.gameCleanup = function() {
+            if (window.tetrisInterval) {
+                clearInterval(window.tetrisInterval);
+                window.tetrisInterval = null;
+            }
+            if (window.tetrisGameLoop) {
+                window.tetrisGameLoop = false;
+            }
+        };
+        
+        initTetrisGame();
+    }
+
+    function initTetrisGame() {
+        const canvas = document.getElementById('tetris-canvas');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const BLOCK_SIZE = 30;
+        const BOARD_WIDTH = 10;
+        const BOARD_HEIGHT = 14;
+        
+        let gameState = {
+            board: Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0)),
+            currentPiece: null,
+            currentX: 4,
+            currentY: 0,
+            score: 0,
+            lines: 0,
+            gameRunning: true,
+            dropCounter: 0,
+            dropInterval: 1000
+        };
+
+        const PIECES = [
+            [[1,1,1,1]], // I
+            [[1,1],[1,1]], // O
+            [[0,1,0],[1,1,1]], // T
+            [[0,1,1],[1,1,0]], // S
+            [[1,1,0],[0,1,1]], // Z
+            [[1,0,0],[1,1,1]], // J
+            [[0,0,1],[1,1,1]]  // L
+        ];
+
+        const COLORS = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500'];
+
+        function createPiece() {
+            const pieceIndex = Math.floor(Math.random() * PIECES.length);
+            return {
+                shape: PIECES[pieceIndex],
+                color: COLORS[pieceIndex]
+            };
+        }
+
+        function drawBlock(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x * BLOCK_SIZE, y * BLOCK_SIZE, BLOCK_SIZE - 1, BLOCK_SIZE - 1);
+        }
+
+        function drawBoard() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (gameState.board[y][x]) {
+                        drawBlock(x, y, gameState.board[y][x]);
+                    }
+                }
+            }
+            
+            if (gameState.currentPiece) {
+                gameState.currentPiece.shape.forEach((row, dy) => {
+                    row.forEach((cell, dx) => {
+                        if (cell) {
+                            drawBlock(
+                                gameState.currentX + dx,
+                                gameState.currentY + dy,
+                                gameState.currentPiece.color
+                            );
+                        }
+                    });
+                });
+            }
+        }
+
+        function canMove(piece, x, y) {
+            return piece.shape.every((row, dy) =>
+                row.every((cell, dx) => {
+                    if (!cell) return true;
+                    const newX = x + dx;
+                    const newY = y + dy;
+                    return newX >= 0 && newX < BOARD_WIDTH && 
+                           newY >= 0 && newY < BOARD_HEIGHT &&
+                           !gameState.board[newY][newX];
+                })
+            );
+        }
+
+        function placePiece() {
+            gameState.currentPiece.shape.forEach((row, dy) => {
+                row.forEach((cell, dx) => {
+                    if (cell) {
+                        gameState.board[gameState.currentY + dy][gameState.currentX + dx] = gameState.currentPiece.color;
+                    }
+                });
+            });
+            
+            // Check for completed lines
+            let linesCleared = 0;
+            for (let y = BOARD_HEIGHT - 1; y >= 0; y--) {
+                if (gameState.board[y].every(cell => cell !== 0)) {
+                    gameState.board.splice(y, 1);
+                    gameState.board.unshift(Array(BOARD_WIDTH).fill(0));
+                    linesCleared++;
+                    y++;
+                }
+            }
+            
+            if (linesCleared > 0) {
+                gameState.lines += linesCleared;
+                gameState.score += linesCleared * 100 * linesCleared;
+            }
+            
+            // Spawn new piece
+            gameState.currentPiece = createPiece();
+            gameState.currentX = 4;
+            gameState.currentY = 0;
+            
+            if (!canMove(gameState.currentPiece, gameState.currentX, gameState.currentY)) {
+                gameState.gameRunning = false;
+                alert('Game Over! Final Score: ' + gameState.score);
+            }
+        }
+
+        function rotatePiece(piece) {
+            const rotated = piece.shape[0].map((_, index) =>
+                piece.shape.map(row => row[index]).reverse()
+            );
+            return { ...piece, shape: rotated };
+        }
+
+        function handleKeyPress(e) {
+            if (!gameState.gameRunning) return;
+            
+            switch(e.key.toLowerCase()) {
+                case 'a':
+                case 'arrowleft':
+                    if (canMove(gameState.currentPiece, gameState.currentX - 1, gameState.currentY)) {
+                        gameState.currentX--;
+                    }
+                    break;
+                case 'd':
+                case 'arrowright':
+                    if (canMove(gameState.currentPiece, gameState.currentX + 1, gameState.currentY)) {
+                        gameState.currentX++;
+                    }
+                    break;
+                case 's':
+                case 'arrowdown':
+                    if (canMove(gameState.currentPiece, gameState.currentX, gameState.currentY + 1)) {
+                        gameState.currentY++;
+                        gameState.score++;
+                    }
+                    break;
+                case 'w':
+                case 'arrowup':
+                    const rotated = rotatePiece(gameState.currentPiece);
+                    if (canMove(rotated, gameState.currentX, gameState.currentY)) {
+                        gameState.currentPiece = rotated;
+                    }
+                    break;
+            }
+        }
+
+        document.addEventListener('keydown', handleKeyPress);
+        
+        window.resetTetris = function() {
+            gameState = {
+                board: Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0)),
+                currentPiece: createPiece(),
+                currentX: 4,
+                currentY: 0,
+                score: 0,
+                lines: 0,
+                gameRunning: true,
+                dropCounter: 0,
+                dropInterval: 1000
+            };
+        };
+
+        gameState.currentPiece = createPiece();
+        
+        window.tetrisGameLoop = true;
+        let lastTime = 0;
+        function gameLoop(time = 0) {
+            if (!window.tetrisGameLoop) return;
+            
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            
+            if (gameState.gameRunning) {
+                gameState.dropCounter += deltaTime;
+                if (gameState.dropCounter > gameState.dropInterval) {
+                    if (canMove(gameState.currentPiece, gameState.currentX, gameState.currentY + 1)) {
+                        gameState.currentY++;
+                    } else {
+                        placePiece();
+                    }
+                    gameState.dropCounter = 0;
+                }
+            }
+            
+            drawBoard();
+            
+            const scoreEl = document.getElementById('tetris-score');
+            const linesEl = document.getElementById('tetris-lines');
+            if (scoreEl) scoreEl.textContent = gameState.score;
+            if (linesEl) linesEl.textContent = gameState.lines;
+            
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    }
+
     document.getElementById('settings').addEventListener('click', function() {
         const settingsContent = `
             <div class="settings-container">
@@ -615,32 +1518,71 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="wallpaper-preview pond-blue"></div>
                             <span>Pond Blue</span>
                         </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                            <div class="wallpaper-preview twilight-pond"></div>
+                            <span>Twilight Pond</span>
+                        </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(120deg, #a8edea 0%, #fed6e3 100%)">
+                            <div class="wallpaper-preview lily-blossom"></div>
+                            <span>Lily Blossom</span>
+                        </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(45deg, #fa709a 0%, #fee140 100%)">
+                            <div class="wallpaper-preview sunset-marsh"></div>
+                            <span>Sunset Marsh</span>
+                        </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(160deg, #0093e9 0%, #80d0c7 100%)">
+                            <div class="wallpaper-preview crystal-lake"></div>
+                            <span>Crystal Lake</span>
+                        </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(62deg, #8EC5FC 0%, #E0C3FC 100%)">
+                            <div class="wallpaper-preview morning-mist"></div>
+                            <span>Morning Mist</span>
+                        </div>
+                        <div class="wallpaper-option" data-bg="linear-gradient(90deg, #74b9ff 0%, #0984e3 50%, #00b894 100%)">
+                            <div class="wallpaper-preview ocean-breeze"></div>
+                            <span>Ocean Breeze</span>
+                        </div>
                     </div>
                 </div>
                 <div class="settings-section">
                     <h3>🔊 Sound</h3>
                     <label>
-                        <input type="checkbox" checked> Enable Croaking Sounds
+                        <input type="checkbox" id="croak-checkbox" ${savedCroakEnabled === null || savedCroakEnabled === 'true' ? 'checked' : ''}> Enable Croaking Sound on Bootup
                     </label>
                 </div>
             </div>
         `;
         
-        const settingsWindow = createWindow('⚙️ Pond Settings', settingsContent, '500px', '400px');
+        const settingsWindow = createWindow('⚙️ Pond Settings', settingsContent, '600px', '340px');
+        
+        const currentWallpaper = localStorage.getItem('frogos-wallpaper') || 'linear-gradient(54deg,rgb(82, 142, 86) 0%, rgb(106, 156, 87) 55%, rgb(104, 149, 78) 100%)';
         
         const wallpaperOptions = settingsWindow.querySelectorAll('.wallpaper-option');
         wallpaperOptions.forEach(option => {
+            if (option.dataset.bg === currentWallpaper) {
+                option.classList.add('active');
+            } else {
+                option.classList.remove('active');
+            }
+            
             option.addEventListener('click', function() {
                 wallpaperOptions.forEach(opt => opt.classList.remove('active'));
                 this.classList.add('active');
                 const newBg = this.dataset.bg;
                 document.body.style.background = newBg;
+                
+                localStorage.setItem('frogos-wallpaper', newBg);
             });
+        });
+        
+        const croakCheckbox = settingsWindow.querySelector('#croak-checkbox');
+        croakCheckbox.addEventListener('change', function() {
+            localStorage.setItem('frogos-croak-enabled', this.checked.toString());
         });
     });
 
     document.getElementById('games').addEventListener('click', function() {
-        createWindow('🎮 Frog Games', '<p style="text-align: center; padding: 20px;">🐸 Games collection coming soon! 🎮<br><br>Future games:<br>• Frogger Classic<br>• Lily Pad Jump<br>• Fly Catcher</p>', '400px', '300px');
+        createGamesWindow();
     });
 
     document.getElementById('files').addEventListener('click', function() {
