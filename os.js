@@ -1,4 +1,49 @@
 document.addEventListener('DOMContentLoaded', function() {
+    function initializeNotificationSystem() {
+        if (!document.getElementById('notifications')) {
+            const container = document.createElement('div');
+            container.id = 'notifications';
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+    }
+    
+    function initializeTaskbar() {
+        const existingTaskbar = document.querySelector('.taskbar-apps');
+        if (!existingTaskbar) {
+            const taskbar = document.querySelector('.taskbar');
+            if (taskbar) {
+                const taskbarLeft = document.createElement('div');
+                taskbarLeft.className = 'taskbar-left';
+                
+                const taskbarRight = document.createElement('div');
+                taskbarRight.className = 'taskbar-right';
+                
+                const startButton = taskbar.querySelector('#start');
+                const systemIcons = taskbar.querySelector('.taskbar-icons');
+                
+                if (startButton) {
+                    taskbar.removeChild(startButton);
+                    taskbarLeft.appendChild(startButton);
+                }
+                
+                if (systemIcons) {
+                    taskbar.removeChild(systemIcons);
+                    taskbarRight.appendChild(systemIcons);
+                }
+                
+                const taskbarAppsContainer = document.createElement('div');
+                taskbarAppsContainer.className = 'taskbar-apps';
+                taskbarLeft.appendChild(taskbarAppsContainer);
+                taskbar.appendChild(taskbarLeft);
+                taskbar.appendChild(taskbarRight);
+            }
+        }
+    }
+    
+    initializeNotificationSystem();
+    initializeTaskbar();
+    
     const savedWallpaper = localStorage.getItem('frogos-wallpaper');
     const savedCroakEnabled = localStorage.getItem('frogos-croak-enabled');
     
@@ -20,39 +65,198 @@ document.addEventListener('DOMContentLoaded', function() {
         croakAudio.play().catch(() => {
             console.log('🐸 Ribbit! Welcome to FrogOS!');
             
-            const croakNotification = document.createElement('div');
-            croakNotification.innerHTML = '🐸 Ribbit! Welcome to FrogOS!';
-            croakNotification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: rgba(76, 175, 80, 0.9);
-                color: white;
-                padding: 10px 15px;
-                border-radius: 8px;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                font-weight: bold;
-                z-index: 10000;
-                animation: fadeInOut 3s ease-in-out;
-            `;
-            
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes fadeInOut {
-                    0% { opacity: 0; transform: translateY(-20px); }
-                    20% { opacity: 1; transform: translateY(0); }
-                    80% { opacity: 1; transform: translateY(0); }
-                    100% { opacity: 0; transform: translateY(-20px); }
-                }
-            `;
-            document.head.appendChild(style);
-            document.body.appendChild(croakNotification);
-            
-            setTimeout(() => {
-                document.body.removeChild(croakNotification);
-                document.head.removeChild(style);
-            }, 3000);
+            showNotification('🐸 Welcome to FrogOS!', 'System ready - All pond applications loaded successfully', 'success');
         });
+    }
+
+    function showNotification(title, message, type = 'info', duration = 4000) {
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-icon">
+                ${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close">×</button>
+        `;
+        
+        const notificationContainer = document.getElementById('notifications') || createNotificationContainer();
+        notificationContainer.appendChild(notification);
+        
+        setTimeout(() => notification.classList.add('notification-show'), 100);
+        
+        const closeBtn = notification.querySelector('.notification-close');
+        closeBtn.addEventListener('click', () => removeNotification(notification));
+        
+        setTimeout(() => removeNotification(notification), duration);
+        
+        return notification;
+    }
+    
+    function createNotificationContainer() {
+        const container = document.createElement('div');
+        container.id = 'notifications';
+        container.className = 'notification-container';
+        document.body.appendChild(container);
+        return container;
+    }
+    
+    function removeNotification(notification) {
+        if (notification && notification.parentNode) {
+            notification.classList.add('notification-hide');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }
+    }
+
+    let taskbarApps = [];
+    
+    function addToTaskbar(windowElement, appName, icon) {
+        const existingApp = taskbarApps.find(app => app.name === appName);
+        if (existingApp) {
+            existingApp.windows.push(windowElement);
+            updateTaskbarApp(existingApp);
+            return;
+        }
+        
+        const taskbarItem = document.createElement('div');
+        taskbarItem.className = 'taskbar-app';
+        taskbarItem.innerHTML = `
+            <span class="taskbar-app-icon">${icon}</span>
+            <span class="taskbar-app-title">${appName}</span>
+        `;
+        
+        const app = {
+            element: taskbarItem,
+            name: appName,
+            icon: icon,
+            windows: [windowElement]
+        };
+        
+        taskbarApps.push(app);
+        
+        taskbarItem.addEventListener('click', () => toggleAppWindows(app));
+        setupTaskbarContextMenu(taskbarItem, app);
+        
+        let taskbarAppsContainer = document.querySelector('.taskbar-apps');
+        if (!taskbarAppsContainer) {
+            taskbarAppsContainer = createTaskbar();
+        }
+        
+        if (taskbarAppsContainer) {
+            taskbarAppsContainer.appendChild(taskbarItem);
+        }
+        
+        updateTaskbarApp(app);
+    }
+    
+    function createTaskbar() {
+        const taskbar = document.createElement('div');
+        taskbar.className = 'taskbar-apps';
+        const taskbarLeft = document.querySelector('.taskbar-left');
+        if (taskbarLeft) {
+            taskbarLeft.appendChild(taskbar);
+        } else {
+            const existingTaskbar = document.querySelector('.taskbar');
+            if (existingTaskbar) {
+                existingTaskbar.appendChild(taskbar);
+            }
+        }
+        return taskbar;
+    }
+    
+    function removeFromTaskbar(windowElement) {
+        taskbarApps.forEach(app => {
+            app.windows = app.windows.filter(w => w !== windowElement);
+            if (app.windows.length === 0) {
+                if (app.element.parentNode) {
+                    app.element.parentNode.removeChild(app.element);
+                }
+                taskbarApps = taskbarApps.filter(a => a !== app);
+            } else {
+                updateTaskbarApp(app);
+            }
+        });
+    }
+    
+    function updateTaskbarApp(app) {
+        // Update visual state of taskbar app
+        if (app.windows.length === 0) {
+            app.element.classList.remove('active', 'minimized');
+        } else if (app.windows.some(w => w.style.display !== 'none')) {
+            app.element.classList.add('active');
+            app.element.classList.remove('minimized');
+        } else {
+            app.element.classList.remove('active');
+            app.element.classList.add('minimized');
+        }
+    }
+    
+    function toggleAppWindows(app) {
+        if (app.windows.length === 1) {
+            const window = app.windows[0];
+            if (window.style.display === 'none') {
+                restoreWindow(window);
+            } else {
+                minimizeWindow(window);
+            }
+        } else {
+            app.windows.forEach(window => {
+                if (window.style.display === 'none') {
+                    restoreWindow(window);
+                }
+            });
+        }
+    }
+    
+    function minimizeWindow(windowElement) {
+        windowElement.classList.add('window-minimizing');
+        setTimeout(() => {
+            windowElement.style.display = 'none';
+            windowElement.classList.remove('window-minimizing');
+            showNotification('Window Minimized', `${windowElement.querySelector('.window-title').textContent} minimized to taskbar`, 'info', 2000);
+        }, 300);
+    }
+    
+    function maximizeWindow(windowElement) {
+        if (windowElement.classList.contains('window-maximized')) {
+            // Restore window
+            windowElement.classList.remove('window-maximized');
+            windowElement.classList.add('window-restoring');
+            setTimeout(() => windowElement.classList.remove('window-restoring'), 300);
+            
+            // Update button symbol
+            const maxBtn = windowElement.querySelector('.window-maximize');
+            if (maxBtn) maxBtn.textContent = '□';
+            
+            showNotification('Window Restored', `${windowElement.querySelector('.window-title').textContent} restored to normal size`, 'info', 2000);
+        } else {
+            // Maximize window
+            windowElement.classList.add('window-maximizing');
+            setTimeout(() => {
+                windowElement.classList.remove('window-maximizing');
+                windowElement.classList.add('window-maximized');
+            }, 300);
+            
+            // Update button symbol
+            const maxBtn = windowElement.querySelector('.window-maximize');
+            if (maxBtn) maxBtn.textContent = '⧉';
+            
+            showNotification('Window Maximized', `${windowElement.querySelector('.window-title').textContent} maximized to full screen`, 'info', 2000);
+        }
+    }
+    
+    function restoreWindow(windowElement) {
+        windowElement.style.display = 'block';
+        windowElement.classList.add('window-restoring');
+        windowElement.style.zIndex = nextZIndex++;
+        setTimeout(() => windowElement.classList.remove('window-restoring'), 300);
     }
 
     function updateTime() {
@@ -78,13 +282,225 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // ====== RIGHT-CLICK CONTEXT MENU SYSTEM ======
+    let activeContextMenu = null;
+
+    function createContextMenu(items, x, y) {
+        // Remove existing context menu
+        if (activeContextMenu) {
+            activeContextMenu.remove();
+            activeContextMenu = null;
+        }
+
+        const menu = document.createElement('div');
+        menu.className = 'context-menu';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
+        menu.style.zIndex = nextZIndex++;
+
+        items.forEach(item => {
+            if (item === '---') {
+                const separator = document.createElement('div');
+                separator.className = 'context-separator';
+                menu.appendChild(separator);
+            } else {
+                const menuItem = document.createElement('div');
+                menuItem.className = 'context-item';
+                menuItem.innerHTML = `
+                    <span class="context-icon">${item.icon || ''}</span>
+                    <span class="context-label">${item.label}</span>
+                    <span class="context-shortcut">${item.shortcut || ''}</span>
+                `;
+                
+                if (item.disabled) {
+                    menuItem.classList.add('disabled');
+                } else {
+                    menuItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (item.action) item.action();
+                        hideContextMenu();
+                    });
+                }
+                
+                menu.appendChild(menuItem);
+            }
+        });
+
+        // Adjust position if menu goes off screen
+        document.body.appendChild(menu);
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth) {
+            menu.style.left = (x - rect.width) + 'px';
+        }
+        if (rect.bottom > window.innerHeight) {
+            menu.style.top = (y - rect.height) + 'px';
+        }
+
+        activeContextMenu = menu;
+        return menu;
+    }
+
+    function hideContextMenu() {
+        if (activeContextMenu) {
+            activeContextMenu.remove();
+            activeContextMenu = null;
+        }
+    }
+
+    // Desktop right-click menu
+    document.addEventListener('contextmenu', function(e) {
+        // Check if right-clicking on desktop (not on any window or element)
+        if (e.target === document.body || e.target.classList.contains('icons')) {
+            e.preventDefault();
+            
+            const desktopMenu = [
+                {
+                    icon: '🔄',
+                    label: 'Refresh Desktop',
+                    action: () => {
+                        showNotification('Desktop Refreshed', 'Desktop has been refreshed', 'success', 2000);
+                        // You could add actual refresh logic here
+                    }
+                },
+                {
+                    icon: '📄',
+                    label: 'New Text File',
+                    action: () => {
+                        openNotes();
+                    }
+                },
+                '---',
+                {
+                    icon: '🎨',
+                    label: 'Personalize',
+                    action: () => {
+                        // Open settings focused on wallpaper
+                        document.getElementById('settings').click();
+                    }
+                },
+                {
+                    icon: '⚙️',
+                    label: 'Display Settings',
+                    action: () => {
+                        showNotification('Display Settings', 'Display settings opened', 'info', 2000);
+                    }
+                }
+            ];
+            
+            createContextMenu(desktopMenu, e.clientX, e.clientY);
+        }
+    });
+
+    // Window header right-click menu
+    function setupWindowContextMenu(windowElement) {
+        const header = windowElement.querySelector('.window-header');
+        if (header) {
+            header.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const isMaximized = windowElement.classList.contains('window-maximized');
+                const title = windowElement.querySelector('.window-title').textContent;
+                
+                const windowMenu = [
+                    {
+                        icon: '↻',
+                        label: 'Restore',
+                        disabled: !isMaximized,
+                        action: () => {
+                            if (isMaximized) maximizeWindow(windowElement);
+                        }
+                    },
+                    {
+                        icon: '−',
+                        label: 'Minimize',
+                        action: () => minimizeWindow(windowElement)
+                    },
+                    {
+                        icon: '□',
+                        label: isMaximized ? 'Restore' : 'Maximize',
+                        action: () => maximizeWindow(windowElement)
+                    },
+                    '---',
+                    {
+                        icon: '📌',
+                        label: 'Always on Top',
+                        action: () => {
+                            windowElement.style.zIndex = 9999;
+                            showNotification('Window Pinned', `${title} is now always on top`, 'info', 2000);
+                        }
+                    },
+                    {
+                        icon: '👁️',
+                        label: 'Transparency',
+                        action: () => {
+                            windowElement.style.opacity = windowElement.style.opacity === '0.8' ? '1' : '0.8';
+                            showNotification('Transparency', `${title} transparency toggled`, 'info', 2000);
+                        }
+                    },
+                    '---',
+                    {
+                        icon: '×',
+                        label: 'Close',
+                        shortcut: 'Alt+F4',
+                        action: () => closeWindow(windowElement)
+                    }
+                ];
+                
+                createContextMenu(windowMenu, e.clientX, e.clientY);
+            });
+        }
+    }
+
+    // Taskbar app right-click menu
+    function setupTaskbarContextMenu(taskbarApp, appData) {
+        taskbarApp.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const taskbarMenu = [
+                {
+                    icon: '📌',
+                    label: 'Pin to Taskbar',
+                    action: () => {
+                        showNotification('App Pinned', `${appData.name} pinned to taskbar`, 'success', 2000);
+                    }
+                },
+                {
+                    icon: '🚀',
+                    label: 'Open New Window',
+                    action: () => {
+                        // Open new instance of the app
+                        showNotification('New Window', `Opening new ${appData.name} window`, 'info', 2000);
+                    }
+                },
+                '---',
+                {
+                    icon: '×',
+                    label: 'Close All Windows',
+                    action: () => {
+                        appData.windows.forEach(window => closeWindow(window));
+                        showNotification('Windows Closed', `All ${appData.name} windows closed`, 'info', 2000);
+                    }
+                }
+            ];
+            
+            createContextMenu(taskbarMenu, e.clientX, e.clientY);
+        });
+    }
+
+    // Hide context menu on click elsewhere
+    document.addEventListener('click', hideContextMenu);
+
     function closeWindow(windowElement) {
         if (windowElement) {
+            removeFromTaskbar(windowElement);
             windowElement.remove();
             openWindows = openWindows.filter(w => w !== windowElement);
             if (currentWindow === windowElement) {
                 currentWindow = null;
             }
+            showNotification('Window Closed', `${windowElement.querySelector('.window-title').textContent} has been closed`, 'info', 2000);
         }
     }
 
@@ -96,13 +512,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isStartMenu) {
             const existingWindow = openWindows.find(w => w.querySelector('.window-title').textContent === title);
             if (existingWindow) {
-                existingWindow.style.zIndex = nextZIndex++;
+                restoreWindow(existingWindow);
                 return existingWindow;
             }
         }
         
         const window = document.createElement('div');
-        window.className = 'window';
+        window.className = isStartMenu ? 'window' : 'window window-opening';
         
         if (window.innerWidth <= 768) {
             window.style.width = '95vw';
@@ -114,12 +530,27 @@ document.addEventListener('DOMContentLoaded', function() {
         
         window.style.zIndex = nextZIndex++;
         
-        const closeButtonHtml = showCloseButton ? '<button class="window-close">×</button>' : '';
+        // Set start menu position BEFORE adding to DOM
+        if (isStartMenu) {
+            window.style.bottom = '80px';
+            window.style.left = '20px';
+            window.style.top = 'auto';
+            window.style.transform = 'none';
+            window.style.position = 'fixed';
+        }
+        
+        const windowControls = showCloseButton ? `
+            <div class="window-controls">
+                <button class="window-control window-minimize" title="Minimize">−</button>
+                <button class="window-control window-maximize" title="Maximize">□</button>
+                <button class="window-control window-close" title="Close">×</button>
+            </div>
+        ` : '';
         
         window.innerHTML = `
             <div class="window-header">
                 <span class="window-title">${title}</span>
-                ${closeButtonHtml}
+                ${windowControls}
             </div>
             <div class="window-content">
                 ${content}
@@ -128,9 +559,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.appendChild(window);
         
+        setTimeout(() => {
+            window.classList.remove('window-opening');
+        }, 300);
+        
         openWindows.push(window);
         
         if (!isStartMenu) {
+            const appIcon = getAppIcon(title);
+            addToTaskbar(window, title, appIcon);
+            
             if (window.innerWidth <= 768) {
                 window.style.top = '10vh';
                 window.style.left = '50%';
@@ -148,7 +586,19 @@ document.addEventListener('DOMContentLoaded', function() {
             currentWindow = window;
         }
         
+        // Window controls event listeners
+        const minimizeBtn = window.querySelector('.window-minimize');
+        const maximizeBtn = window.querySelector('.window-maximize');
         const closeBtn = window.querySelector('.window-close');
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => minimizeWindow(window));
+        }
+        
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', () => maximizeWindow(window));
+        }
+        
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
                 if (window.querySelector('.music-player')) {
@@ -174,13 +624,32 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (showCloseButton) {
             makeDraggable(window);
+            setupWindowContextMenu(window);
         }
         
         window.addEventListener('mousedown', () => {
             window.style.zIndex = nextZIndex++;
         });
         
+        if (!isStartMenu) {
+            showNotification('App Launched', `${title} opened successfully`, 'success', 2000);
+        }
+        
         return window;
+    }
+    
+    function getAppIcon(title) {
+        const iconMap = {
+            '🌐 Froggle Browser': '🌐',
+            '🔢 Frog Calculator': '🔢',
+            '📝 Lily Pad Notes': '📝',
+            '🐸 About FrogOS': '🐸',
+            '🎵 FrogBeats Music': '🎵',
+            '🎮 FrogOS Games': '🎮',
+            '📁 Swamp Explorer': '📁',
+            '⚙️ Pond Settings': '⚙️'
+        };
+        return iconMap[title] || '🪟';
     }
 
     function makeDraggable(windowElement) {
@@ -283,11 +752,6 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         const startWindow = createWindow('🐸 FrogOS Start Menu', startMenuContent, '350px', '320px', false, true);
-        
-        startWindow.style.bottom = '80px';
-        startWindow.style.left = '20px';
-        startWindow.style.top = 'auto';
-        startWindow.style.transform = 'none';
         
         startWindow.classList.add('start-menu-window');
         

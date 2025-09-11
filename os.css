@@ -85,6 +85,18 @@ body{
     z-index: 100;
 }
 
+.taskbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .taskbar img{
     height: 3rem;
     width: 3rem;
@@ -226,6 +238,399 @@ body{
 
 .window-close:hover {
     background: #ff3b30;
+}
+
+/* New Window Controls */
+.window-controls {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.window-control {
+    background: #666;
+    border: none;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+
+.window-minimize {
+    background: #ffbd2e;
+    color: #333;
+}
+
+.window-minimize:hover {
+    background: #ff9500;
+    color: white;
+}
+
+.window-maximize {
+    background: #28ca42;
+    color: white;
+}
+
+.window-maximize:hover {
+    background: #1ead36;
+}
+
+.window-close {
+    background: #ff5f56;
+}
+
+.window-close:hover {
+    background: #ff3b30;
+}
+
+/* Window Animations */
+.window-opening {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+    animation: windowOpen 0.3s ease-out forwards;
+}
+
+.window-minimizing {
+    animation: windowMinimize 0.3s ease-in forwards;
+}
+
+.window-maximizing {
+    animation: windowMaximize 0.3s ease-out forwards;
+}
+
+.window-maximized {
+    width: 100vw !important;
+    height: calc(100vh - 3.5rem) !important;
+    top: 0 !important;
+    left: 0 !important;
+    transform: none !important;
+    border-radius: 0;
+}
+
+.window-restoring {
+    animation: windowRestore 0.3s ease-out forwards;
+}
+
+@keyframes windowOpen {
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes windowMinimize {
+    to {
+        opacity: 0;
+        transform: translate(-50%, 50vh) scale(0.1);
+    }
+}
+
+@keyframes windowMaximize {
+    to {
+        width: 100vw !important;
+        height: calc(100vh - 3.5rem) !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        border-radius: 0;
+    }
+}
+
+@keyframes windowRestore {
+    from {
+        width: 100vw !important;
+        height: calc(100vh - 3.5rem) !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        border-radius: 0;
+    }
+}
+
+/* Notification System */
+.notification-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.notification {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    padding: 15px 20px;
+    min-width: 300px;
+    max-width: 400px;
+    pointer-events: auto;
+    opacity: 0;
+    transform: translateX(100%);
+    animation: notificationSlideIn 0.3s ease-out forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+.notification.notification-success {
+    border-left: 4px solid #4CAF50;
+}
+
+.notification.notification-error {
+    border-left: 4px solid #f44336;
+}
+
+.notification.notification-warning {
+    border-left: 4px solid #ff9800;
+}
+
+.notification.notification-info {
+    border-left: 4px solid #2196F3;
+}
+
+.notification-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.notification-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(0,0,0,0.1);
+    animation: notificationProgress linear forwards;
+}
+
+.notification.notification-success .notification-progress {
+    background: #4CAF50;
+}
+
+.notification.notification-error .notification-progress {
+    background: #f44336;
+}
+
+.notification.notification-warning .notification-progress {
+    background: #ff9800;
+}
+
+.notification.notification-info .notification-progress {
+    background: #2196F3;
+}
+
+@keyframes notificationSlideIn {
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes notificationSlideOut {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+@keyframes notificationProgress {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+/* Taskbar Apps */
+.taskbar-apps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 100%;
+}
+
+.taskbar-app {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 150px;
+    border: 1px solid transparent;
+    position: relative;
+}
+
+.taskbar-app:hover {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.taskbar-app.active {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.4);
+}
+
+.taskbar-app.minimized {
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.3);
+}
+
+.taskbar-app.minimized::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 2px;
+    background: #ffbd2e;
+    border-radius: 1px;
+}
+
+.taskbar-app-icon {
+    font-size: 14px;
+}
+
+.taskbar-app-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+@media screen and (max-width: 1024px) {
+    .notification {
+        min-width: 250px;
+        max-width: 300px;
+        padding: 12px 15px;
+    }
+    
+    .taskbar-app {
+        padding: 6px 8px;
+        font-size: 11px;
+        max-width: 120px;
+    }
+    
+    .taskbar-app-title {
+        max-width: 80px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .notification-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+    
+    .notification {
+        min-width: auto;
+        max-width: none;
+        width: 100%;
+    }
+    
+    .taskbar-apps {
+        gap: 4px;
+        margin-left: 8px;
+    }
+    
+    .taskbar-app {
+        padding: 4px 6px;
+        font-size: 10px;
+        max-width: 80px;
+    }
+    
+    .taskbar-app-title {
+        max-width: 50px;
+    }
+}
+
+/* Context Menu System */
+.context-menu {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    min-width: 180px;
+    padding: 4px 0;
+    font-size: 13px;
+    user-select: none;
+    z-index: 10000;
+}
+
+.context-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.context-item:hover {
+    background-color: #f0f0f0;
+}
+
+.context-item.disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+}
+
+.context-icon {
+    width: 20px;
+    text-align: center;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.context-label {
+    flex: 1;
+    white-space: nowrap;
+}
+
+.context-shortcut {
+    color: #666;
+    font-size: 11px;
+    margin-left: 8px;
+}
+
+.context-separator {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 4px 0;
+}
+
+@media screen and (max-width: 768px) {
+    .context-menu {
+        min-width: 160px;
+        font-size: 14px;
+    }
+    
+    .context-item {
+        padding: 10px 12px;
+    }
 }
 
 .window-content {
